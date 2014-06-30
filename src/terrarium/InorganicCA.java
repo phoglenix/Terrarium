@@ -36,13 +36,10 @@ public class InorganicCA {
     int phase;
     
     Random random;
-    Color emptyCol = new Color(0, 0, 0, 0);
-    Color dirtCol = new Color(139, 69, 19, 255);
-    Color waterCol = new Color(0, 100, 255, 255);
 
     public enum CellState {
         EMPTY(Angle.NONE, false, new Color(0, 0, 0, 0)),
-        STEAM(Angle.UP, true, new Color(0, 200, 255, 255)),
+        STEAM(Angle.UP, true, new Color(200, 200, 200, 255)),
         WATER(Angle.HORIZONTAL, false, new Color(0, 100, 255, 255)),
         DIRT(Angle.DIAG_DOWN, false, new Color(139, 69, 19, 255)),
         WALL(Angle.NONE, false, new Color(0, 0, 0, 0));

@@ -29,7 +29,10 @@ import java.util.*;
  */
 public class InorganicCAOneCell extends InorganicCA {
     
-    /** Temperature in degrees, affects how often steam<->water */
+    /** Reduces the frequency of steam/water conversions */
+    int waterCycleDelay = 500;
+    
+    /** Temperature in degrees, affects ratio of steam<->water */
     int temperature = 30;
     
     /** Cheap "random" left/right decider */
@@ -136,6 +139,26 @@ public class InorganicCAOneCell extends InorganicCA {
         return true;
     }
     
+    /** Returns whether Point p is on the surface of some water */
+    public boolean isWaterSurface(Point p) {
+        boolean foundWater = false;
+        boolean foundNonWater = false;
+        for (int i = Math.max(p.y - 1, 0); i < Math.min(p.y + 2, height); i++) {
+            for (int j = Math.max(p.x - 1, 0); j < Math.min(p.x + 2, width); j++) {
+                if (i < p.y && getCellState(i, j) != CellState.WATER) {
+                    foundNonWater = true;
+                    break;
+                } else if (i == p.y) {
+                    break;
+                } else if (i > p.y && getCellState(i, j) == CellState.WATER) {
+                    foundWater = true;
+                    break;
+                }
+            }
+        }
+        return foundWater && foundNonWater;
+    }
+    
     public void updateStates() {
         // Each cell can be updated only once per updateStates call
         Set<Point> updatedCells = new HashSet<>();
@@ -165,35 +188,35 @@ public class InorganicCAOneCell extends InorganicCA {
         
         // Randomly change some water to steam, based on temperature
         // Generate some random jumps
-        int numJumps = 9;
-        int variation = temperature;
+        int numJumps = 10;
         int[] jumps = new int[numJumps];
         for (int i = 0; i < numJumps; i++) {
-            jumps[i] = Math.max(1, 100 - temperature + variation - random.nextInt(2*variation));
+            int variation = temperature - random.nextInt(2*temperature);
+            jumps[i] = Math.max(1, 100 - temperature + variation + waterCycleDelay);
         }
         int currentJump = 0;
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j += jumps[currentJump]) {
-                currentJump = (currentJump + 1) % numJumps;
-                if (getCellState(i, j) == CellState.WATER
-                        && neighboursAll(new Point(i, j), CellState.WATER)) {
-                    setCellState(i, j, CellState.STEAM);
-                }
+        for (int i = 0; i < height * width; i += jumps[currentJump]) {
+            int x = i % width;
+            int y = i / width;
+            currentJump = (currentJump + 1) % numJumps;
+            if (getCellState(y, x) == CellState.WATER && isWaterSurface(new Point(y, x))) {
+                setCellState(y, x, CellState.STEAM);
             }
         }
         
         // Randomly change some steam to water, based on temperature
         // Generate some random jumps
         for (int i = 0; i < numJumps; i++) {
-            jumps[i] = Math.max(1, temperature + variation - random.nextInt(2*variation));
+            int variation = temperature - random.nextInt(2*temperature);
+            jumps[i] = Math.max(1, temperature + variation + waterCycleDelay);
         }
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j += jumps[currentJump]) {
-                currentJump = (currentJump + 1) % numJumps;
-                if (getCellState(i, j) == CellState.STEAM
-                        && neighboursAll(new Point(i, j), CellState.STEAM)) {
-                    setCellState(i, j, CellState.WATER);
-                }
+        for (int i = 0; i < height * width; i += jumps[currentJump]) {
+            int x = i % width;
+            int y = i / width;
+            currentJump = (currentJump + 1) % numJumps;
+            if (getCellState(y, x) == CellState.STEAM
+                    && neighboursAll(new Point(y, x), CellState.STEAM)) {
+                setCellState(y, x, CellState.WATER);
             }
         }
     }
