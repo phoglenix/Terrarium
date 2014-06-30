@@ -124,16 +124,16 @@ public class InorganicCAOneCell extends InorganicCA {
         return neighbours;
     }
     
-    /** Returns whether there is a CellState type cs in the neighbours of p */
-    public boolean neighboursIncludes(Point p, CellState cs) {
+    /** Returns whether all neighbours of Point p are CellState type cs */
+    public boolean neighboursAll(Point p, CellState cs) {
         for (int i = Math.max(p.y - 1, 0); i < Math.min(p.y + 2, height); i++) {
             for (int j = Math.max(p.x - 1, 0); j < Math.min(p.x + 2, width); j++) {
-                if (!(i == p.y && j == p.x) && getCellState(i, j) == cs) {
-                    return true;
+                if (!(i == p.y && j == p.x) && getCellState(i, j) != cs) {
+                    return false;
                 }
             }
         }
-        return false;
+        return true;
     }
     
     public void updateStates() {
@@ -176,7 +176,7 @@ public class InorganicCAOneCell extends InorganicCA {
             for (int j = 0; j < width; j += jumps[currentJump]) {
                 currentJump = (currentJump + 1) % numJumps;
                 if (getCellState(i, j) == CellState.WATER
-                        && neighboursIncludes(new Point(i, j), CellState.EMPTY)) {
+                        && neighboursAll(new Point(i, j), CellState.WATER)) {
                     setCellState(i, j, CellState.STEAM);
                 }
             }
@@ -191,7 +191,7 @@ public class InorganicCAOneCell extends InorganicCA {
             for (int j = 0; j < width; j += jumps[currentJump]) {
                 currentJump = (currentJump + 1) % numJumps;
                 if (getCellState(i, j) == CellState.STEAM
-                        && neighboursIncludes(new Point(i, j), CellState.STEAM)) {
+                        && neighboursAll(new Point(i, j), CellState.STEAM)) {
                     setCellState(i, j, CellState.WATER);
                 }
             }
