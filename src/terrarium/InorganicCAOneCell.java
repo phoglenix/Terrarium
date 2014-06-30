@@ -17,7 +17,6 @@
 
 package terrarium;
 
-import java.awt.Point;
 import java.util.*;
 
 /**
@@ -30,8 +29,42 @@ import java.util.*;
  */
 public class InorganicCAOneCell extends InorganicCA {
     
+    /** Temperature in degrees, affects how often steam<->water */
+    int temperature = 30;
+    
     /** Cheap "random" left/right decider */
     boolean moveLeftFirst = true;
+    
+    private static class Point {
+        final int x;
+        final int y;
+        
+        Point(int y, int x) {
+            this.y = y;
+            this.x = x;
+        }
+
+        @Override
+        public int hashCode() {
+            return x + 31 * y;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Point other = (Point) obj;
+            if (x != other.x)
+                return false;
+            if (y != other.y)
+                return false;
+            return true;
+        }
+    }
     
     public InorganicCAOneCell(int width, int height) {
         super(width, height);
@@ -48,15 +81,19 @@ public class InorganicCAOneCell extends InorganicCA {
     /**
      * Updates the state of a single cell.
      * 
-     * @param i
-     * @param j
+     * @param y
+     * @param x
      * @param angle the angle at which to try to move the cell
      */
-    public Point updateCell(int i, int j, Angle angle) {
-        if (angle.isBiggerThan(getCellState(i, j).maxAngle)) {
+    public Point updateCell(int y, int x, Angle angle) {
+        CellState cs = getCellState(y, x);
+        if (angle.isBiggerThan(cs.maxAngle)) {
             return null;
         }
-        int nextI = i + angle.dy;
+        int nextY = y + angle.dy;
+        if (cs.reverseGravity) {
+            nextY = y - angle.dy;
+        }
         int dX = angle.dx;
         
         // "Randomise" left/right movement
@@ -64,11 +101,11 @@ public class InorganicCAOneCell extends InorganicCA {
             dX = -dX;
         }
         moveLeftFirst = !moveLeftFirst;
-        if (pushState(i, j, nextI, j + dX)) {
-            return new Point(nextI, j + dX);
+        if (pushState(y, x, nextY, x + dX)) {
+            return new Point(nextY, x + dX);
         }
-        if (pushState(i, j, nextI, j - dX)) {
-            return new Point(nextI, j - dX);
+        if (pushState(y, x, nextY, x - dX)) {
+            return new Point(nextY, x - dX);
         }
         
         return null;
@@ -77,14 +114,26 @@ public class InorganicCAOneCell extends InorganicCA {
     /** Returns a list of the 8 neighbouring points (or fewer if they are off the edge) */
     public List<Point> neighbours(Point p) {
         List<Point> neighbours = new ArrayList<>();
-        for (int i = Math.max(p.x - 1, 0); i < Math.min(p.x + 2, height); i++) {
-            for (int j = Math.max(p.y - 1, 0); j < Math.min(p.y + 2, width); j++) {
-                if (!(i == p.x && j == p.y)) {
+        for (int i = Math.max(p.y - 1, 0); i < Math.min(p.y + 2, height); i++) {
+            for (int j = Math.max(p.x - 1, 0); j < Math.min(p.x + 2, width); j++) {
+                if (!(i == p.y && j == p.x)) {
                     neighbours.add(new Point(i, j));
                 }
             }
         }
         return neighbours;
+    }
+    
+    /** Returns whether there is a CellState type cs in the neighbours of p */
+    public boolean neighboursIncludes(Point p, CellState cs) {
+        for (int i = Math.max(p.y - 1, 0); i < Math.min(p.y + 2, height); i++) {
+            for (int j = Math.max(p.x - 1, 0); j < Math.min(p.x + 2, width); j++) {
+                if (!(i == p.y && j == p.x) && getCellState(i, j) == cs) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     
     public void updateStates() {
@@ -105,11 +154,45 @@ public class InorganicCAOneCell extends InorganicCA {
             while (!toCheck.isEmpty()) {
                 Point p = toCheck.remove(0);
                 if (!updatedCells.contains(p)) {
-                    Point updated = updateCell(p.x, p.y, angle);
+                    Point updated = updateCell(p.y, p.x, angle);
                     if (updated != null) {
                         updatedCells.add(updated);
                         toCheck.addAll(neighbours(p));
                     }
+                }
+            }
+        }
+        
+        // Randomly change some water to steam, based on temperature
+        // Generate some random jumps
+        int numJumps = 9;
+        int variation = temperature;
+        int[] jumps = new int[numJumps];
+        for (int i = 0; i < numJumps; i++) {
+            jumps[i] = Math.max(1, 100 - temperature + variation - random.nextInt(2*variation));
+        }
+        int currentJump = 0;
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j += jumps[currentJump]) {
+                currentJump = (currentJump + 1) % numJumps;
+                if (getCellState(i, j) == CellState.WATER
+                        && neighboursIncludes(new Point(i, j), CellState.EMPTY)) {
+                    setCellState(i, j, CellState.STEAM);
+                }
+            }
+        }
+        
+        // Randomly change some steam to water, based on temperature
+        // Generate some random jumps
+        for (int i = 0; i < numJumps; i++) {
+            jumps[i] = Math.max(1, temperature + variation - random.nextInt(2*variation));
+        }
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j += jumps[currentJump]) {
+                currentJump = (currentJump + 1) % numJumps;
+                if (getCellState(i, j) == CellState.STEAM
+                        && neighboursIncludes(new Point(i, j), CellState.STEAM)) {
+                    setCellState(i, j, CellState.WATER);
                 }
             }
         }

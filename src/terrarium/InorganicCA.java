@@ -17,6 +17,7 @@
 
 package terrarium;
 
+import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -35,18 +36,27 @@ public class InorganicCA {
     int phase;
     
     Random random;
+    Color emptyCol = new Color(0, 0, 0, 0);
+    Color dirtCol = new Color(139, 69, 19, 255);
+    Color waterCol = new Color(0, 100, 255, 255);
 
     public enum CellState {
-        EMPTY(Angle.NONE),
-        STEAM(Angle.UP),
-        WATER(Angle.HORIZONTAL),
-        DIRT(Angle.DIAG_DOWN),
-        WALL(Angle.NONE);
+        EMPTY(Angle.NONE, false, new Color(0, 0, 0, 0)),
+        STEAM(Angle.UP, true, new Color(0, 200, 255, 255)),
+        WATER(Angle.HORIZONTAL, false, new Color(0, 100, 255, 255)),
+        DIRT(Angle.DIAG_DOWN, false, new Color(139, 69, 19, 255)),
+        WALL(Angle.NONE, false, new Color(0, 0, 0, 0));
         
         /** The maximum "angle" the cell type can move */
         final Angle maxAngle;
-        private CellState(Angle maxAngle) {
+        /** Whether gravity is reversed for this type. Flips the effect of maxAngle */
+        final boolean reverseGravity;
+        /** Colour of this CellState. English spelling necessary. */
+        final Color colour;
+        private CellState(Angle maxAngle, boolean reverseGravity, Color colour) {
             this.maxAngle = maxAngle;
+            this.reverseGravity = reverseGravity;
+            this.colour = colour;
         }
         /**
          * @param otherState

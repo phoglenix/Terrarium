@@ -36,11 +36,6 @@ public class Terrarium {
     BufferedImage image;
     Image backgroundImage;
     
-    Color emptyCol = new Color(0, 0, 0, 0);
-    Color dirtCol = new Color(139, 69, 19, 255);
-    //Color dirtCol = new Color(255,255,255, 255);
-    Color waterCol = new Color(0, 100, 255, 255);
-    
     /**
      * Create a new terrarium simulation.
      * 
@@ -51,7 +46,7 @@ public class Terrarium {
         this.width = width;
         this.height = height;
         
-        inorganicCA = new InorganicCA(width, height);
+        inorganicCA = new InorganicCAOneCell(width, height);
         
         image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
     }
@@ -94,20 +89,7 @@ public class Terrarium {
         // Render inorganic
         for (int i=0; i<height; i++) {
             for (int j=0; j<width; j++) {
-                int rgbCol;
-                switch(inorganicCA.getCellState(i, j)) {
-                    case DIRT:
-                        rgbCol = dirtCol.getRGB();
-                        break;
-                    case WATER:
-                        rgbCol = waterCol.getRGB();
-                        break;
-                    case EMPTY:
-                        rgbCol = emptyCol.getRGB();
-                        break;
-                    default:
-                        rgbCol = 0;
-                }
+                int rgbCol = inorganicCA.getCellState(i, j).colour.getRGB();
                 image.setRGB(j, i, rgbCol);
             }
         }
